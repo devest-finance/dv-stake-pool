@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "./extensions/VestingToken.sol";
-import "./extensions/DvRoyalty.sol";
-import "./extensions/DvTax.sol";
-import "./IStakePool.sol";
+import "./VestingToken.sol";
+import "./DeVest.sol";
 
 /** errors
 E1 : Only owner can initialize tangibles
@@ -40,7 +37,7 @@ E26 : Only DeVest can update Fees
 
 // DevStakePool Investment Model One
 // Bid & Offer
-contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTax, DvRoyalty {
+contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
 
     // ---------------------------- EVENTS ------------------------------------
 
@@ -92,10 +89,11 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
 
 
     // Set owner and DI OriToken
-    constructor(address _tokenAddress, string memory name, string memory symbol, address _factory, address _owner)
-    VestingToken(_tokenAddress) DvTax(_owner) DvRoyalty(_factory) {
-        _symbol = string(abi.encodePacked("% ", symbol));
-        _name = name;
+    constructor(address _tokenAddress, string memory __name, string memory __symbol, address _owner, address _factory)
+    VestingToken(_tokenAddress) DeVest(_owner, _factory) {
+
+        _symbol = string(abi.encodePacked("% ", __symbol));
+        _name = __name;
     }
 
     // ----------------------------------------------------------------------------------------------------------
@@ -116,7 +114,7 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
     // ------------------------------------------------ INTERNAL ------------------------------------------------
     // ----------------------------------------------------------------------------------------------------------
 
-    function swapShares(address to, address from, uint256 amount) internal {
+    function swapShares(address from, address to, uint256 amount) internal {
         // if shareholder has no shares add him as new
         if (shares[to] == 0) {
             shareholdersIndex[to] = shareholders.length;
@@ -140,18 +138,18 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
     /**
      *  Initialize TST as tangible
      */
-    function initialize(uint256 _initialValue, uint _tax, uint8 decimals) public virtual returns (bool){
+    function initialize(uint256 _initialValue, uint _royalty, uint8 __decimals) public virtual returns (bool){
         require(!initialized, 'E3');
         require(owner() == _msgSender(), 'E4');
-        require(_tax >= 0 && _tax <= 1000, 'E5');
+        require(_royalty >= 0 && _royalty <= 1000, 'E5');
 
-        _decimals = decimals + 2;
+        _decimals = __decimals + 2;
         uint256 totalShares = (10 ** _decimals);
         _totalSupply = totalShares;
 
         require(_initialValue >= totalShares, 'E8');
 
-        setTax(_tax);
+        _setRoyalties(_royalty, _msgSender());
 
         reservesTokens = _initialValue;
         reservesShares = totalShares;
@@ -165,6 +163,10 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
         return true;
     }
 
+    function test(uint256 _initialValue, uint _royalty, uint8 __decimals) public {
+
+    }
+
     // ----------------------------------------------------------------------------------------------------------
     // ------------------------------------------------ TRADING -------------------------------------------------
 
@@ -172,10 +174,10 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
     * Swap shares between owners,
     * Check for same level of disburse !!
     */
-    function transfer(address recipient, uint256 amount) external payable takeRoyalty{
+    function transfer(address recipient, uint256 amount) external payable takeFee nonReentrant _isActive {
         require(_msgSender() != owner(), 'Publisher cannot transfer shares');
 
-        swapShares(recipient, _msgSender(), amount);
+        swapShares(_msgSender(), recipient, amount);
     }
 
     /**
@@ -183,20 +185,20 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
     *  amountIn: How much tokens to Spend
     *  amountOutMin: Minimal amount of shares to accept (according to price-movement)
     */
-    function buy(uint256 amountIn, uint256 amountOutMin) public payable virtual override takeRoyalty nonReentrant _isActive{
-        require(amountOutMin > 0 && amountOutMin <= (10 ** _decimals), 'E9');
-
+    function buy(uint256 amountIn, uint256 amountOutMin) public payable virtual takeFee nonReentrant _isActive{
+        require(_msgSender() != owner(), 'Publisher cannot buy shares');
+        require(amountOutMin > 0 && amountOutMin <= _totalSupply, 'E9');
         uint256 _amountOut = (reservesShares * amountIn) / (reservesTokens + amountIn);
         require(_amountOut > 0, 'PURCHASE QUANTITY TO LOW');
         require(_amountOut >= amountOutMin, 'SLIPPAGE FAILED');
 
         // calculate tax and charge and pull tokens
-        uint256 _taxCharge = (amountIn * getTax()) / 1000;
+        uint256 _taxCharge = (amountIn * getRoyalty()) / 1000;
         uint256 _totalCost = amountIn + _taxCharge;
         __transferFrom(_msgSender(), address(this), _totalCost);
 
         // swap shares from publisher (manager) to new owner
-        swapShares(_msgSender(), owner(), _amountOut);
+        swapShares(owner(), _msgSender(), _amountOut);
 
         // pay tax
         __transfer(owner(), _taxCharge);
@@ -209,15 +211,16 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
     /**
      *  Sell order
      */
-    function sell(uint256 sharesIn, uint256 tokensOutMin) public payable override takeRoyalty nonReentrant _isActive {
-        require(sharesIn > 0 && sharesIn <= 1000, 'E12');
+    function sell(uint256 sharesIn, uint256 tokensOutMin) public payable takeFee nonReentrant _isActive {
+        require(_msgSender() != owner(), 'Publisher cannot sell shares');
+        require(sharesIn > 0 && sharesIn <= _totalSupply, 'E12');
         require(shares[_msgSender()]  > 0, 'E14');
 
         uint256 _amountOut = (reservesTokens * sharesIn) / (reservesShares + sharesIn);
         require(_amountOut >= tokensOutMin, 'SLIPPAGE FAILED');
 
         // swap shares from publisher (manager) to new owner
-        swapShares(owner(), _msgSender(), sharesIn);
+        swapShares(_msgSender(), owner(), sharesIn);
 
         __transfer(_msgSender(), _amountOut);
 
@@ -227,7 +230,7 @@ contract DvStakePool is IStakePool, VestingToken, ReentrancyGuard, Context, DvTa
     }
 
     // Terminate this contract, and pay-out all remaining investors
-    function terminate() public override _isActive returns (bool) {
+    function terminate() public _isActive returns (bool) {
         require(owner() == _msgSender(), 'E25');
 
         terminated = true;

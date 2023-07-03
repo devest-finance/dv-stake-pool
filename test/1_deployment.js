@@ -10,7 +10,7 @@ contract('Testing Deployments', (accounts) => {
 
     it('Verify root (DeVest) DAO was deployed', async () => {
         const dvStakePoolFactory = await DvStakePoolFactory.deployed();
-        const devestDAOAddress = await dvStakePoolFactory.getRoyalty.call();
+        const devestDAOAddress = await dvStakePoolFactory.getFee.call();
 
         const devestDAO = await DvStakePool.at(devestDAOAddress[1]);
         const symbol = await devestDAO.symbol.call();
@@ -31,6 +31,7 @@ contract('Testing Deployments', (accounts) => {
         assert.equal(symbol, "% EXP", "Failed to issue Example Contract");
     });
 
+
     it('Check DvStakeToken', async () => {
         const devestOne = await DvStakePool.at(exampleModelAddress);
 
@@ -38,7 +39,11 @@ contract('Testing Deployments', (accounts) => {
         const name = await devestOne.name.call();
         assert(name, "Example", "Invalid name on TST");
 
-        await devestOne.initialize(3000000000, 10, 2, { from: accounts[0] });
+        try {
+            await devestOne.initialize(3000000000, 10, 2, { from: accounts[0] });
+        } catch (e) {
+            console.log(e);
+        }
 
         const value = (await devestOne.reservesShares.call()).toNumber();
         assert.equal(value, 10000, "Invalid price on initialized tangible");
@@ -49,7 +54,7 @@ contract('Testing Deployments', (accounts) => {
         const erc20Token = await ERC20.deployed();
 
         // devest shares
-        const devestDAOAddress = await stakePoolFactory.getRoyalty.call();
+        const devestDAOAddress = await stakePoolFactory.getFee.call();
         const DeVestDAO = await DvStakePool.at(devestDAOAddress[1]);
 
         // issue new product

@@ -11,13 +11,14 @@ module.exports = function(deployer) {
             .then(() => DvStakePoolFactory.deployed())
             .then(async _instance => {
                 const devestDAOImp = await _instance.issue("0x0000000000000000000000000000000000000000", "DeVest DAO", "DeVest DAO");
-                //await _instance.setRoot(devestDAOImp.logs[0].args[1], { from: "0xECF5A576A949aEE5915Afb60E0e62D09825Cd61B" });
-                //await _instance.setRoyalty(100000000);
-                const devestDAO = await DvStakePool.at(devestDAOImp.logs[0].args[1]);
-                await devestDAO.initialize(10000000, 10, 2, { from: "0xECF5A576A949aEE5915Afb60E0e62D09825Cd61B" });
 
-                await _instance.setRoyalty(10000000, 10000000);
+                await _instance.setFee(10000000, 10000000)
                 await _instance.setRecipient(devestDAOImp.logs[0].args[1]);
+
+                const devestDAO = await DvStakePool.at(devestDAOImp.logs[0].args[1]);
+                await devestDAO.initialize(10000000, 10, 2, {
+                    from: "0xECF5A576A949aEE5915Afb60E0e62D09825Cd61B"
+                });
             })
     } else {
         deployer.deploy(DvStakePoolFactory)
