@@ -1,3 +1,4 @@
+const AccountHelper = require("./helpers/Helper");
 const DvStakePool = artifacts.require("DvStakePool");
 const DvStakePoolFactory = artifacts.require("DvStakePoolFactory");
 
@@ -66,8 +67,8 @@ contract('Testing Deployments', (accounts) => {
         const balanceBefore = await web3.eth.getBalance(DeVestDAO.address);
         assert.equal(balanceBefore, 20000000, "Invalid balance on DeVest before DAO");
 
-        /*
         // check if royalty are paid
+        /*
         await subjectContract.transfer(accounts[1], 50, { from: accounts[0], value: 100000000 });
         const balance = await web3.eth.getBalance(DeVestDAO.address);
         assert.equal(balance, 30000000, "Transfer royalties failed");
@@ -76,10 +77,43 @@ contract('Testing Deployments', (accounts) => {
         await stakePoolFactory.detach(subjectContract.address);
 
         // check if royalty are paid
-        await subjectContract.transfer(accounts[1], 50, { from: accounts[0], value: 100000000 });
+        await subjectContract.transfer(accounts[2], 50, { from: accounts[1], value: 100000000 });
         const balanceDetached = await web3.eth.getBalance(DeVestDAO.address);
         assert.equal(balanceDetached, 30000000, "Transfer royalties failed");
         */
+    });
+
+    it('Check DvStakeToken Termination before Initialization', async () => {
+        const stakePoolFactory = await DvStakePoolFactory.deployed();
+        const erc20Token = await ERC20.deployed();
+
+        // devest shares
+        const devestDAOAddress = await stakePoolFactory.getFee.call();
+        const DeVestDAO = await DvStakePool.at(devestDAOAddress[1]);
+
+        // issue new product
+        const exampleOneContract = await stakePoolFactory.issue(erc20Token.address, "Example", "EXP", { from: accounts[0], value: 100000000 });
+        exampleModelAddress = exampleOneContract.logs[0].args[1];
+        const subjectContract = await DvStakePool.at(exampleModelAddress);
+
+        let token = await AccountHelper.createERCToken("ERC20 Token #1", "TK1",
+            1000000000, "0xECF5A576A949aEE5915Afb60E0e62D09825Cd61B", accounts[0]);
+
+        // Get balances of first and second account after the transactions.
+        let accountBalance1 = (await token.balanceOf.call(accounts[0])).toNumber();
+
+        assert.equal(accountBalance1, 1000000000, "Token balance invalid");
+
+        await token.approve(subjectContract.address, 10000, { from: accounts[0] });
+        await subjectContract.addAsset(token.address, 10000, { from: accounts[0] });
+
+        accountBalance1 = (await token.balanceOf.call(accounts[0])).toNumber();
+        assert.equal(accountBalance1, 999990000, "Token balance invalid");
+
+        await subjectContract.terminate({ from: accounts[0] });
+
+        accountBalance1 = (await token.balanceOf.call(accounts[0])).toNumber();
+        assert.equal(accountBalance1, 1000000000, "Tokens should be returned after termination before initialization");
     });
 
 });

@@ -6,35 +6,6 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./VestingToken.sol";
 import "./DeVest.sol";
 
-/** errors
-E1 : Only owner can initialize tangibles
-E2 : Tangible was terminated
-E3 : Tangible already initialized
-E4 : Only owner can initialize tangibles
-E5 : Invalid tax value
-E6 : Invalid tax value
-E7 : Currently only max 2 decimals supported
-E8 : Amount must be bigger than 100
-E9 : Invalid amount submitted
-E10 : Invalid price submitted
-E11 : Active buy order, cancel first
-E12 : Invalid amount submitted
-E13 : Invalid price submitted
-E14 : Insufficient shares
-E15 : Active order, cancel first
-E16 : Invalid amount submitted
-E17 : Invalid order
-E18 : Can't accept your own order
-E19 : Insufficient shares
-E20 : No open bid
-E21 : Tangible was not initialized
-E22 : Share was terminated
-E23 : Invalid amount provided
-E24 : Only shareholders can vote for switch tangible
-E25 : Only owner can termination
-E26 : Only DeVest can update Fees
-*/
-
 // DevStakePool Investment Model One
 // Bid & Offer
 contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
@@ -105,8 +76,8 @@ contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
     *
     */
     modifier _isActive() {
-        require(initialized, 'E1');
-        require(!terminated, 'E2');
+        require(initialized, 'Only owner can initialize tangibles');
+        require(!terminated, 'Tangible was terminated');
         _;
     }
 
@@ -139,15 +110,15 @@ contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
      *  Initialize TST as tangible
      */
     function initialize(uint256 _initialValue, uint _royalty, uint8 __decimals) public virtual returns (bool){
-        require(!initialized, 'E3');
-        require(owner() == _msgSender(), 'E4');
-        require(_royalty >= 0 && _royalty <= 1000, 'E5');
+        require(!initialized, 'Tangible already initialized');
+        require(owner() == _msgSender(), 'Only owner can initialize tangibles');
+        require(_royalty >= 0 && _royalty <= 1000, 'Invalid tax value');
 
         _decimals = __decimals + 2;
         uint256 totalShares = (10 ** _decimals);
         _totalSupply = totalShares;
 
-        require(_initialValue >= totalShares, 'E8');
+        require(_initialValue >= totalShares, 'Amount must be larger than 100');
 
         _setRoyalties(_royalty, _msgSender());
 
@@ -187,7 +158,7 @@ contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
     */
     function buy(uint256 amountIn, uint256 amountOutMin) public payable virtual takeFee nonReentrant _isActive{
         require(_msgSender() != owner(), 'Publisher cannot buy shares');
-        require(amountOutMin > 0 && amountOutMin <= _totalSupply, 'E9');
+        require(amountOutMin > 0 && amountOutMin <= _totalSupply, 'Invalid amount submitted');
         uint256 _amountOut = (reservesShares * amountIn) / (reservesTokens + amountIn);
         require(_amountOut > 0, 'PURCHASE QUANTITY TO LOW');
         require(_amountOut >= amountOutMin, 'SLIPPAGE FAILED');
@@ -213,8 +184,8 @@ contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
      */
     function sell(uint256 sharesIn, uint256 tokensOutMin) public payable takeFee nonReentrant _isActive {
         require(_msgSender() != owner(), 'Publisher cannot sell shares');
-        require(sharesIn > 0 && sharesIn <= _totalSupply, 'E12');
-        require(shares[_msgSender()]  > 0, 'E14');
+        require(sharesIn > 0 && sharesIn <= _totalSupply, 'Invalid amount submitted');
+        require(shares[_msgSender()]  > 0, 'Insufficient shares');
 
         uint256 _amountOut = (reservesTokens * sharesIn) / (reservesShares + sharesIn);
         require(_amountOut >= tokensOutMin, 'SLIPPAGE FAILED');
@@ -230,10 +201,19 @@ contract DvStakePool is VestingToken, ReentrancyGuard, Context, DeVest {
     }
 
     // Terminate this contract, and pay-out all remaining investors
-    function terminate() public _isActive returns (bool) {
-        require(owner() == _msgSender(), 'E25');
+    function terminate() public nonReentrant onlyOwner returns (bool) {
+        require(terminated == false, 'Already terminated');
+        require(owner() == _msgSender(), 'Only owner can terminate');
 
         terminated = true;
+
+        // if not initialized return all assets to owner
+        if (!initialized){
+            for(uint256 i=0;i<assets.length;i++){
+                IERC20 _token = IERC20(assets[i].token);
+                _token.transfer(_msgSender(), assets[i].amount);
+            }
+        }
 
         return terminated;
     }
