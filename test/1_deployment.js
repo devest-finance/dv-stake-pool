@@ -41,12 +41,12 @@ contract('Testing Deployments', (accounts) => {
         assert(name, "Example", "Invalid name on TST");
 
         try {
-            await devestOne.initialize(3000000000, 10, 2, { from: accounts[0] });
+            await devestOne.initialize(10, 2, { from: accounts[0] });
         } catch (e) {
             console.log(e);
         }
 
-        const value = (await devestOne.reservesShares.call()).toNumber();
+        const value = (await devestOne.totalSupply.call()).toNumber();
         assert.equal(value, 10000, "Invalid price on initialized tangible");
     });
 
@@ -62,25 +62,10 @@ contract('Testing Deployments', (accounts) => {
         const exampleOneContract = await stakePoolFactory.issue(erc20Token.address, "Example", "EXP", { from: accounts[0], value: 100000000 });
         exampleModelAddress = exampleOneContract.logs[0].args[1];
         const subjectContract = await DvStakePool.at(exampleModelAddress);
-        await subjectContract.initialize(1000000000, 10, 0, { from: accounts[0] });
+        await subjectContract.initialize(10, 0, { from: accounts[0] });
 
         const balanceBefore = await web3.eth.getBalance(DeVestDAO.address);
         assert.equal(balanceBefore, 20000000, "Invalid balance on DeVest before DAO");
-
-        // check if royalty are paid
-        /*
-        await subjectContract.transfer(accounts[1], 50, { from: accounts[0], value: 100000000 });
-        const balance = await web3.eth.getBalance(DeVestDAO.address);
-        assert.equal(balance, 30000000, "Transfer royalties failed");
-
-        // detach from factory
-        await stakePoolFactory.detach(subjectContract.address);
-
-        // check if royalty are paid
-        await subjectContract.transfer(accounts[2], 50, { from: accounts[1], value: 100000000 });
-        const balanceDetached = await web3.eth.getBalance(DeVestDAO.address);
-        assert.equal(balanceDetached, 30000000, "Transfer royalties failed");
-        */
     });
 
     it('Check DvStakeToken Termination before Initialization', async () => {

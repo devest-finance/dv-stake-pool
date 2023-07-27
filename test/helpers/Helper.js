@@ -30,12 +30,6 @@ class Helper {
         const _name = await modelTwoInstance.name.call();
         assert(_name, "Example", "Invalid name on TST");
 
-        /*
-        await modelTwoInstance.initialize(initalValue, tax, { from: sender });
-
-        const _value = (await modelTwoInstance.initalValue.call()).toNumber();
-        assert.equal(_value, initalValue, "Invalid price on initialized tangible");
-        */
         return modelTwoInstance;
     }
 

@@ -16,7 +16,7 @@ module.exports = function(deployer) {
                 await _instance.setRecipient(devestDAOImp.logs[0].args[1]);
 
                 const devestDAO = await DvStakePool.at(devestDAOImp.logs[0].args[1]);
-                await devestDAO.initialize(10000000, 10, 2, {
+                await devestDAO.initialize(10, 2, {
                     from: "0xECF5A576A949aEE5915Afb60E0e62D09825Cd61B"
                 });
             })
