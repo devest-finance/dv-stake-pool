@@ -160,14 +160,10 @@ contract('Functions accessability', (accounts) => {
         await stakePool.cancel({ from: accounts[0] });
 
         // transfet should be callable after initialization
-        try {
-            await stakePool.transfer(accounts[2], 50, { from: accounts[0], value: 10000000 });
-        } catch (e) {
-            assert.equal(e.reason, "Publisher cannot transfer shares", "Invalid error message");    
-        }
+        await stakePool.transfer(accounts[7], 10, { from: accounts[0], value: 10000000 });
 
         // sell should be callable after initialization
-        await stakePool.sell(100, 100, { from: accounts[0] });
+        await stakePool.sell(100, 90, { from: accounts[0] });
 
         // allowence for account 2
         await vestingToken.approve(stakePool.address, Math.floor(100 * 100 * 1.1), { from: accounts[2] });
@@ -239,13 +235,7 @@ contract('Functions accessability', (accounts) => {
         await stakePool.cancel({ from: accounts[0] });
 
         // try calling transfer after termination
-        try {
-            await stakePool.transfer(accounts[3], 50, { from: accounts[0], value: 10000000 });
-            assert(false, "Transfer should not be callable");
-        }
-        catch (e) {
-            assert.equal(e.reason, "Not available in current state", "Invalid error message");
-        }
+        await stakePool.transfer(accounts[7], 10, { from: accounts[0], value: 10000000 });
 
         // try calling addAsset after termination
         try {

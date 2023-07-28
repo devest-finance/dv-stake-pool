@@ -73,7 +73,7 @@ contract DeVest is Context {
     }
 
     function _setRoyalties(uint256 __royalty, address __royaltyRecipient) internal {
-        require(__royalty >= 0 && __royalty <= 1000, 'E5');
+        require(__royalty >= 0 && __royalty <= 1000, 'Royalty must be between 0 and 1000');
         _royalty = __royalty;
         _royaltyRecipient = __royaltyRecipient;
     }
