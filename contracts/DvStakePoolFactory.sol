@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 
-import "@devest/devest/DvFactory.sol";
+import "@devest/contracts/DvFactory.sol";
 import "./DvStakePool.sol";
 
 
