@@ -4,8 +4,7 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./DeVest.sol";
-import "./DvOrderBook.sol";
+import "@devest/devest/DvOrderBook.sol";
 
 // DevStakePool Investment Model One
 // Bid & Offer
