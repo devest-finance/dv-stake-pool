@@ -28,6 +28,14 @@ contract DvStakePool is DvOrderBook {
     // ------------------------------------------------- PUBLIC -------------------------------------------------
     // ----------------------------------------------------------------------------------------------------------
 
+    // ----------------------------------------------------------------------------------------------------------
+    // -------------------------------------------- OWNER FUNCTIONS ---------------------------------------------
+
+    // Override initializePresale to prevent this function from being called
+    function initializePresale(uint /*tax*/, uint8 /*decimal*/, uint256 /*price*/, uint256 /*start*/, uint256 /*end*/) override public onlyOwner atState(States.Created) view {
+        revert("This function is not available for this contract");
+    }
+
     // Terminate this contract, and pay-out all remaining investors
     function terminate() public override nonReentrant onlyOwner notState(States.Terminated) {
 
@@ -49,15 +57,14 @@ contract DvStakePool is DvOrderBook {
      *  token: address of token to add
      *  amount: amount to add
      */
-    function addAsset(address token,uint256 amount) public payable virtual nonReentrant atState(States.Created) onlyOwner {
-        // TODO: Check if you can add same token in to the pool
+    function addAsset(address token,uint256 amount) public payable nonReentrant atState(States.Created) onlyOwner {
         require(token != address(_token), "Vesting token cannot be added as Asset");
         require(amount >= 0, "Invalid amount");
 
-        IERC20 _token = IERC20(token);
+        IERC20 __token = IERC20(token);
 
         // transfer assets to this contract
-        _token.transferFrom(_msgSender(), address(this), amount);
+        __token.transferFrom(_msgSender(), address(this), amount);
 
         // check if asset is already in the pool
         for (uint256 i = 0; i < assets.length; i++) {
@@ -73,20 +80,13 @@ contract DvStakePool is DvOrderBook {
     function withdraw() public payable nonReentrant atState(States.Terminated) {
         require(shares[_msgSender()] > 0, "No shares available");
 
-
-        // publisher also receives trading asset
-        if (_msgSender() == owner()) {
-            uint256 balance = _token.balanceOf(address(this));
-            _token.transfer(_msgSender(), balance);
-        }
-
         // receive shares of assets
         for (uint256 i = 0; i < assets.length; i++) {
-            IERC20 _token = IERC20(assets[i].token);
+            IERC20 __token = IERC20(assets[i].token);
             
             // TODO: Check if this is correct!!!
             uint256 amount = ((shares[_msgSender()] * assets[i].amount) / 10 ** _decimals);
-            _token.transfer(_msgSender(), amount);
+            __token.transfer(_msgSender(), amount);
         }
 
         shares[_msgSender()] = 0;

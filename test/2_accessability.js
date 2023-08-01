@@ -34,6 +34,31 @@ contract('Functions accessability', (accounts) => {
 
     // check if functions are accessible while in created state (initialization should be the only one available)
     it('Check functions accessibility before initialization', async () => {
+        // check that initilizePrisale is not callable
+        try {
+            const price = 10;
+            const start = new Date();
+            start.setHours(start.getHours() - 10);
+            const end = new Date(start);
+            end.setHours(start.getHours() + 20);
+            await stakePool.initializePresale(100, 0, price, parseInt(start.getTime() / 1000), parseInt(end.getTime() / 1000),  { from: accounts[0] });
+            assert(false, "Initialize presale should not be callable");
+        }
+        catch (e) {
+            assert.equal(e.message, 'VM Exception while processing transaction: revert This function is not available for this contract', "Invalid error message");
+        }
+
+        // check that purchase is not callable
+        try {
+            // allowence for account 0
+            await vestingToken.approve(stakePool.address, Math.floor(100 * 10 * 1.1), { from: accounts[0] });
+            await stakePool.purchase(100, { from: accounts[0], value: 10000000 });
+            assert(false, "Purchase should not be callable");
+        }
+        catch (e) {
+            assert.equal(e.reason, "Not available in current state", "Invalid error message");
+        }
+        
         // try calling buy
         try {
             await stakePool.buy(100, 100, { from: accounts[2] });
