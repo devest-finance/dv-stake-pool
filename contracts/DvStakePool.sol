@@ -77,7 +77,7 @@ contract DvStakePool is DvOrderBook {
         assets.push(Asset(token, amount, 0));
     }
 
-    function withdraw() public payable nonReentrant atState(States.Terminated) {
+    function withdraw() public override payable nonReentrant atState(States.Terminated) {
         require(shares[_msgSender()] > 0, "No shares available");
 
         // receive shares of assets

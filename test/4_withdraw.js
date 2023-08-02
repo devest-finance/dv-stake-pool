@@ -4,7 +4,7 @@ const ERC20 = artifacts.require("ERC20PresetFixedSupply");
 const DvStakePoolFactory = artifacts.require("DvStakePoolFactory");
 const DvStakePool = artifacts.require("DvStakePool");
 
-contract('Functions accessability', (accounts) => {
+contract('Withdraw', (accounts) => {
 
     let vestingToken;
     let factory;
