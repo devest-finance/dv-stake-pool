@@ -7,8 +7,6 @@ import "./DvStakePool.sol";
 
 contract DvStakePoolFactory is DvFactory {
 
-    event deployed(address indexed issuer_address, address indexed contract_address);
-
     constructor() DvFactory() {}
 
     /**
