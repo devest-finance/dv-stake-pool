@@ -22,7 +22,7 @@ contract DvStakePool is DvOrderBook {
 
     // Set owner and DI OriToken
     constructor(address _tokenAddress, string memory __name, string memory __symbol, address _factory, address _owner) 
-     DvOrderBook(_tokenAddress, __name, __symbol, _owner, _factory) {}
+     DvOrderBook(_tokenAddress, __name, __symbol, _factory, _owner) {}
 
     // ----------------------------------------------------------------------------------------------------------
     // ------------------------------------------------- PUBLIC -------------------------------------------------

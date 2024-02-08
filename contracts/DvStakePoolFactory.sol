@@ -25,7 +25,7 @@ contract DvStakePoolFactory is DvFactory {
             payable(_feeRecipient).transfer(_issueFee);
 
         // issue token
-        DvStakePool token = new DvStakePool(tradingTokenAddress, name, symbol, _msgSender(), address(this));
+        DvStakePool token = new DvStakePool(tradingTokenAddress, name, symbol, address(this), _msgSender());
 
         emit deployed(_msgSender(), address(token));
         return address(token);

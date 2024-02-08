@@ -59,8 +59,8 @@ module.exports = {
    */
 
   dashboard: {
-    port: 25012,
-    host: "localhost"
+    port: 24012,
+    host: "127.0.0.1"
   },
 
   networks: {
